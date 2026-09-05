@@ -1,0 +1,7 @@
+# Managed by the Ubuntu workstation bootstrap.
+add_newline = false
+format = "$directory$git_branch$git_status$python$character"
+
+[character]
+success_symbol = "[➜](bold #a3be8c)"
+error_symbol = "[➜](bold #bf616a)"

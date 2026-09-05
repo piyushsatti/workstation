@@ -1,0 +1,6 @@
+# Managed by the Ubuntu workstation bootstrap.
+# Ghostty is the preferred terminal. Alacritty is intentionally not configured.
+font-family = JetBrainsMono Nerd Font
+font-size = 12
+theme = Nord
+shell-integration = bash

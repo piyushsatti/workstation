@@ -1,0 +1,7 @@
+{
+  "editor.fontFamily": "JetBrainsMono Nerd Font",
+  "editor.fontLigatures": true,
+  "workbench.colorTheme": "Nord",
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.fontFamily": "JetBrainsMono Nerd Font"
+}

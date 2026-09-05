@@ -1,0 +1,11 @@
+# Optional workstation tools. Verify availability on the chosen 26.04 image
+# before moving any item into required.txt.
+btop
+docker.io
+eza
+fd-find
+fzf
+jq
+neovim
+ripgrep
+zoxide
