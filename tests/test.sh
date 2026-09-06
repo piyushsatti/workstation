@@ -11,6 +11,7 @@ grep -q -- '--apply' <<<"$help_output"
 grep -q -- '--destination PATH' <<<"$help_output"
 grep -q -- '--tui' <<<"$help_output"
 grep -q -- '--with-desktop' <<<"$help_output"
+grep -q -- '--all' <<<"$help_output"
 
 required_manifest="$ROOT/profiles/ubuntu-26.04/required.txt"
 for package in tmux ghostty starship docker.io docker-compose-v2 docker-buildx; do
@@ -19,6 +20,9 @@ done
 grep -q 'TACTILE_VERSION=.*37' "$ROOT/bootstrap.sh"
 grep -q 'TACTILE_UUID=.*tactile@lundal.io' "$ROOT/bootstrap.sh"
 grep -q "command 'ghostty'" "$ROOT/bootstrap.sh"
+grep -q 'npm ci --ignore-scripts' "$ROOT/bootstrap.sh"
+grep -q 'npm run build' "$ROOT/bootstrap.sh"
+grep -q -- '--all)' "$ROOT/bootstrap.sh"
 grep -q 'WORKSPACE_ROOT/rules' "$ROOT/bootstrap.sh"
 test -f "$ROOT/seed/rules/README.md"
 test -f "$ROOT/seed/rules/foundry.md"

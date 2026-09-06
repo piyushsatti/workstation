@@ -16,12 +16,16 @@ The workspace foundation creates `~/Studio/rules/` with small, editable
 pointers to reusable operating rules. It includes a Foundry pointer, but does
 not clone Foundry or install any marketplace content.
 
-The GNOME desktop workflow is opt-in. `--with-desktop` installs Tactile v37
-from its pinned upstream tag, enables it for the current GNOME user, and binds
-`Super+Return` to Ghostty. Run that option from the target user's active GNOME
-session, not from SSH or a headless terminal. Tactile provides the Voyager
-workflow: `Super+T` opens its grid, then tile keys select where the active
-window goes.
+The GNOME desktop workflow is opt-in. `--with-desktop` builds Tactile v37 from
+its pinned upstream tag and locked npm dependencies, enables it for the current
+GNOME user, and binds `Super+Return` to Ghostty. Run that option from the
+target user's active GNOME session, not from SSH or a headless terminal.
+Tactile provides the Voyager workflow: `Super+T` opens its grid, then tile keys
+select where the active window goes.
+
+For a complete first-machine setup, use `--apply --all`. It selects the core
+baseline, optional CLI tools, managed configuration, workspace scaffold, and
+GNOME desktop workflow. It still asks for the normal sudo confirmation.
 
 ## Visual TUI prototype
 
@@ -87,6 +91,7 @@ point. Run the installer there first:
 ./bootstrap.sh --preview
 ./bootstrap.sh --apply
 ./bootstrap.sh --apply --with-desktop
+./bootstrap.sh --apply --all
 ```
 
 For a test home on the VM, use a disposable destination and workspace path:

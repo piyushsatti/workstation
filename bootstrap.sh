@@ -41,6 +41,7 @@ Options:
   --workspace PATH       Use PATH as the workspace root
   --with-optional        Include the optional package set
   --with-desktop         Install the GNOME Tactile desktop workflow and Ghostty shortcut
+  --all                  Select optional tools, desktop workflow, configuration, and workspace scaffolding
   --no-packages          Skip package operations
   --no-config            Skip managed user configuration
   --no-workspace         Skip workspace scaffolding
@@ -52,6 +53,7 @@ Examples:
   ./bootstrap.sh --preview
   ./bootstrap.sh --apply --with-optional
   ./bootstrap.sh --apply --with-desktop
+  ./bootstrap.sh --apply --all
   ./bootstrap.sh --check --destination /tmp/ubuntu-bootstrap-home
 EOF
 }
@@ -249,9 +251,8 @@ install_tactile() {
 
   require_gnome_session
   command -v git >/dev/null 2>&1 || die "git is required for --with-desktop"
-  command -v tar >/dev/null 2>&1 || die "tar is required for --with-desktop"
   note "Installing prerequisites for the GNOME desktop workflow."
-  run_as_root apt-get install --yes libglib2.0-bin
+  run_as_root apt-get install --yes libglib2.0-bin nodejs npm
 
   local extension_dir metadata version temporary
   extension_dir="$DESTINATION/.local/share/gnome-shell/extensions/$TACTILE_UUID"
@@ -264,12 +265,23 @@ install_tactile() {
   else
     temporary=$(mktemp -d)
     trap 'rm -r "$temporary"' RETURN
-    note "Downloading Tactile v$TACTILE_VERSION from its pinned upstream tag."
+    note "Building Tactile v$TACTILE_VERSION from its pinned upstream tag."
     git clone --depth 1 --branch "v$TACTILE_VERSION" "$TACTILE_REPOSITORY" "$temporary/tactile"
     [[ "$(git -C "$temporary/tactile" rev-parse --short=8 HEAD)" == "$TACTILE_COMMIT" ]] \
       || die "Tactile v$TACTILE_VERSION did not resolve to expected commit $TACTILE_COMMIT"
+    (
+      cd "$temporary/tactile"
+      npm ci --ignore-scripts
+      npm run check
+      npm run build
+    )
+    [[ -f "$temporary/tactile/build/metadata.json" ]] \
+      || die "Tactile build did not create metadata.json"
+    version=$(sed -nE 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*([0-9]+).*/\1/p' "$temporary/tactile/build/metadata.json" | head -n 1)
+    [[ "$version" == "$TACTILE_VERSION" ]] \
+      || die "Tactile build reports version $version, expected $TACTILE_VERSION"
     install -d "$extension_dir"
-    git -C "$temporary/tactile" archive HEAD | tar -x -C "$extension_dir"
+    cp -a "$temporary/tactile/build/." "$extension_dir/"
     rm -r "$temporary"
     trap - RETURN
     command -v glib-compile-schemas >/dev/null 2>&1 || die "glib-compile-schemas is unavailable after installing libglib2.0-bin"
@@ -507,6 +519,13 @@ main() {
       --workspace) (($# >= 2)) || die "--workspace needs a value"; WORKSPACE_ROOT=$2; shift ;;
       --with-optional) WITH_OPTIONAL=1 ;;
       --with-desktop) WITH_DESKTOP=1 ;;
+      --all)
+        WITH_OPTIONAL=1
+        WITH_DESKTOP=1
+        CONFIG_ENABLED=1
+        WORKSPACE_ENABLED=1
+        NO_PACKAGES=0
+        ;;
       --no-packages) NO_PACKAGES=1 ;;
       --no-config) CONFIG_ENABLED=0 ;;
       --no-workspace) WORKSPACE_ENABLED=0 ;;
