@@ -17,6 +17,20 @@ SPEC.loader.exec_module(MODULE)
 
 @unittest.skipUnless(shutil.which("tmux"), "tmux is needed for the integration check")
 class TmuxReloadTest(unittest.TestCase):
+    def test_verifier_rejects_startup_configuration_errors(self):
+        with tempfile.TemporaryDirectory(prefix="workstation-invalid-config-") as temp:
+            previous_home = MODULE.HOME
+            MODULE.HOME = Path(temp)
+            (MODULE.HOME / ".tmux.base.conf").write_text(
+                "set -g workstation-deliberately-invalid-option none\n"
+            )
+            try:
+                with self.assertRaises(subprocess.CalledProcessError) as caught:
+                    MODULE.verify_tmux()
+                self.assertIn("invalid option", caught.exception.stderr)
+            finally:
+                MODULE.HOME = previous_home
+
     def test_live_session_survives_and_configuration_is_reloaded(self):
         with tempfile.TemporaryDirectory(prefix="workstation-reload-") as temp:
             root = Path(temp)

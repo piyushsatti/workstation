@@ -1,5 +1,20 @@
 # Installation passed; live desktop acceptance remains pending
 
+## Europa exposed a missed tmux configuration error on 2026-09-06
+
+The first real Europa installation of commit 18371f1 completed through VS Code,
+scaffolding, Tactile and GNOME settings, then failed while reloading existing tmux
+sessions: `invalid option: window-status-silence-style`. Its running tmux 3.6 server
+does not support that inherited option. The profile now omits it.
+
+The previous isolated check accepted successful new-session startup even when tmux
+reported a configuration error. It now explicitly sources the entire configuration
+and requires success. A regression test supplies an invalid option and requires the
+verifier to reject it. Failure reports now retain captured command diagnostics.
+The earlier container pass below did not establish error-free tmux parsing.
+
+## Earlier container results and limits
+
 - On 2026-09-05, a clean Ubuntu 26.04 amd64 container completed the real installer, a repeat installation, and the standalone verifier.
 - Every pass verified the pinned packages, agent CLIs, tmux plugins and status bar, shell aliases, fonts, 50 VS Code extensions, scaffold and persisted desktop settings.
 - Docker image export did not finish: Mercury ran out of disk space and Docker Desktop failed. No final image is claimed.

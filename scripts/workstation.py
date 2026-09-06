@@ -627,6 +627,9 @@ def verify_tmux():
                 "sleep 60",
                 capture=True,
             )
+            # Startup can report config errors without failing new-session. Explicit
+            # sourcing must succeed, just as it must when reloading a live server.
+            run("tmux", "-L", name, "source-file", path, capture=True)
             for option, value in (
                 ("status", "on"),
                 ("status-position", "bottom"),
@@ -873,11 +876,14 @@ if __name__ == "__main__":
         main()
     except Exception as error:  # noqa: BLE001 - report every failed installation stage
         REPORT["status"] = "failed"
-        REPORT["failed"].append(str(error))
+        detail = (
+            (error.stderr or error.stdout or "")[-4000:]
+            if isinstance(error, subprocess.CalledProcessError)
+            else ""
+        )
+        REPORT["failed"].append(f"{error}\n{detail}".strip())
         save_report()
         print(f"FAILED: {error}", file=sys.stderr)
-        if isinstance(error, subprocess.CalledProcessError):
-            detail = error.stderr or error.stdout
-            if detail:
-                print(detail[-4000:], file=sys.stderr)
+        if detail:
+            print(detail, file=sys.stderr)
         sys.exit(1)
