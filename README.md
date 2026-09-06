@@ -12,6 +12,17 @@ needed for development. It configures Microsoft's stable apt repository and
 installs VS Code during apply. It does not import repositories, transcripts,
 credentials, memory corpora, or RAG indexes.
 
+The workspace foundation creates `~/Studio/rules/` with small, editable
+pointers to reusable operating rules. It includes a Foundry pointer, but does
+not clone Foundry or install any marketplace content.
+
+The GNOME desktop workflow is opt-in. `--with-desktop` installs Tactile v37
+from its pinned upstream tag, enables it for the current GNOME user, and binds
+`Super+Return` to Ghostty. Run that option from the target user's active GNOME
+session, not from SSH or a headless terminal. Tactile provides the Voyager
+workflow: `Super+T` opens its grid, then tile keys select where the active
+window goes.
+
 ## Visual TUI prototype
 
 The Textual interface calls the existing bootstrap backend. It defaults to
@@ -57,8 +68,9 @@ The simple capability-selection menu is available on an Ubuntu 26.04 terminal:
 ```
 
 It keeps the base workstation enabled, lets you toggle personal configuration,
-workspace seed notes, and optional CLI packages, then gives you a review screen
-before apply. Press `q` to leave without changing anything.
+workspace seed notes, optional CLI packages, and the opt-in GNOME desktop
+workflow, then gives you a review screen before apply. Press `q` to leave
+without changing anything.
 
 The test intentionally does not claim that macOS is supported. Docker is the
 Linux userland check, not a macOS system check:
@@ -74,6 +86,7 @@ point. Run the installer there first:
 ```sh
 ./bootstrap.sh --preview
 ./bootstrap.sh --apply
+./bootstrap.sh --apply --with-desktop
 ```
 
 For a test home on the VM, use a disposable destination and workspace path:
@@ -94,4 +107,7 @@ Mac, Europa, Voyager 1, or any production machine as the first apply target.
 - The canonical source repository is `https://github.com/piyushsatti/workstation`.
 - VS Code extensions, fonts, Continue, Tailscale, and harness adapters need
   their own package and acceptance work before being marked complete.
+- The desktop workflow needs a real GNOME-session acceptance check. Verify
+  `gnome-extensions info tactile@lundal.io`, press `Super+T`, and confirm
+  `Super+Return` opens Ghostty.
 - There is no macOS profile in v0.1.

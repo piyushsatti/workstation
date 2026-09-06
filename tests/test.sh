@@ -10,11 +10,18 @@ help_output=$(bash "$ROOT/bootstrap.sh" --help)
 grep -q -- '--apply' <<<"$help_output"
 grep -q -- '--destination PATH' <<<"$help_output"
 grep -q -- '--tui' <<<"$help_output"
+grep -q -- '--with-desktop' <<<"$help_output"
 
 required_manifest="$ROOT/profiles/ubuntu-26.04/required.txt"
 for package in tmux ghostty starship docker.io docker-compose-v2 docker-buildx; do
   grep -qx "$package" "$required_manifest"
 done
+grep -q 'TACTILE_VERSION=.*37' "$ROOT/bootstrap.sh"
+grep -q 'TACTILE_UUID=.*tactile@lundal.io' "$ROOT/bootstrap.sh"
+grep -q "command 'ghostty'" "$ROOT/bootstrap.sh"
+grep -q 'WORKSPACE_ROOT/rules' "$ROOT/bootstrap.sh"
+test -f "$ROOT/seed/rules/README.md"
+test -f "$ROOT/seed/rules/foundry.md"
 if grep -qx 'docker.io' "$ROOT/profiles/ubuntu-26.04/optional.txt"; then
   printf 'docker.io must remain in the default workstation baseline\n' >&2
   exit 1

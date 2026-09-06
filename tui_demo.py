@@ -26,7 +26,7 @@ CAPABILITIES = {
     ),
     "workspace-foundation": (
         "Workspace foundation",
-        "Project layout and a small set of durable working principles",
+        "Project layout, working principles, and reusable rules pointers",
         True,
     ),
     "core-tools": (
@@ -37,6 +37,11 @@ CAPABILITIES = {
     "optional": (
         "Optional tools",
         "Extra utilities you can add without changing the base profile",
+        False,
+    ),
+    "desktop-workflow": (
+        "GNOME desktop workflow",
+        "Tactile grid tiling and Super+Return opening Ghostty",
         False,
     ),
 }
@@ -394,12 +399,15 @@ class BootstrapPreview(App):
     def _refresh_selection_summary(self) -> None:
         count = sum(self.selections.values())
         base_count = sum(
-            self.selections[key] for key in CAPABILITIES if key != "optional"
+            self.selections[key]
+            for key in CAPABILITIES
+            if key not in {"optional", "desktop-workflow"}
         )
         optional_text = "on" if self.selections["optional"] else "off"
+        desktop_text = "on" if self.selections["desktop-workflow"] else "off"
         self.query_one("#selection-count", Static).update(f"{count} selected")
         self.query_one("#selection-detail", Static).update(
-            f"{base_count} base capabilities selected  ·  Optional tools: {optional_text}"
+            f"{base_count} base capabilities selected  ·  Optional tools: {optional_text}  ·  Desktop workflow: {desktop_text}"
         )
         if self.query_one("#review-view").display:
             self.query_one("#review-list", Static).update(self._review_text())
@@ -435,6 +443,8 @@ class BootstrapPreview(App):
             command.append("--no-packages")
         if self.selections["optional"]:
             command.append("--with-optional")
+        if self.selections["desktop-workflow"]:
+            command.append("--with-desktop")
         if self.destination:
             command.extend(["--destination", self.destination])
         if self.workspace:

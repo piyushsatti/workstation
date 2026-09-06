@@ -13,8 +13,13 @@ MODE="preview"
 DESTINATION="${HOME:?HOME must be set}"
 WORKSPACE_ROOT="${WORKSPACE_ROOT:-$DESTINATION/Studio}"
 CHEZMOI_VERSION="${CHEZMOI_VERSION:-2.70.5}"
+TACTILE_VERSION="${TACTILE_VERSION:-37}"
+TACTILE_COMMIT="${TACTILE_COMMIT:-6f3c1f88}"
+TACTILE_REPOSITORY="https://gitlab.com/lundal/tactile.git"
+TACTILE_UUID="tactile@lundal.io"
 CHEZMOI_CMD=""
 WITH_OPTIONAL=0
+WITH_DESKTOP=0
 NO_PACKAGES=0
 NONINTERACTIVE=0
 TUI=0
@@ -35,6 +40,7 @@ Options:
   --destination PATH     Use PATH as the destination home (test fixture use)
   --workspace PATH       Use PATH as the workspace root
   --with-optional        Include the optional package set
+  --with-desktop         Install the GNOME Tactile desktop workflow and Ghostty shortcut
   --no-packages          Skip package operations
   --no-config            Skip managed user configuration
   --no-workspace         Skip workspace scaffolding
@@ -45,6 +51,7 @@ Options:
 Examples:
   ./bootstrap.sh --preview
   ./bootstrap.sh --apply --with-optional
+  ./bootstrap.sh --apply --with-desktop
   ./bootstrap.sh --check --destination /tmp/ubuntu-bootstrap-home
 EOF
 }
@@ -171,6 +178,16 @@ print_plan() {
   note ""
   note "Additional package source:"
   note "  - Visual Studio Code from Microsoft's stable apt repository"
+  if (( WITH_DESKTOP )); then
+    note ""
+    note "Desktop workflow:"
+    note "  - Tactile v$TACTILE_VERSION ($TACTILE_COMMIT) from its upstream GitLab repository"
+    note "  - Tactile is enabled for the current GNOME user"
+    note "  - Super+Return opens Ghostty"
+  else
+    note ""
+    note "Desktop workflow: not selected (use --with-desktop)"
+  fi
   note ""
   if (( CONFIG_ENABLED )); then
     note "Managed configuration:"
@@ -187,6 +204,7 @@ print_plan() {
     note "  - $WORKSPACE_ROOT/Developer"
     note "  - $WORKSPACE_ROOT/Projects"
     note "  - $WORKSPACE_ROOT/memory"
+    note "  - $WORKSPACE_ROOT/rules"
     note "  - $WORKSPACE_ROOT/.bootstrap"
   else
     note "Workspace scaffolding: not selected"
@@ -216,6 +234,89 @@ install_packages() {
   run_as_root apt-get install --yes "${packages[@]}"
   install_vscode
   configure_docker_access
+}
+
+require_gnome_session() {
+  command -v gsettings >/dev/null 2>&1 || die "gsettings is required for --with-desktop"
+  command -v gnome-extensions >/dev/null 2>&1 || die "gnome-extensions is required for --with-desktop; run this from an Ubuntu GNOME desktop session"
+  [[ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]] || die "--with-desktop must run from the target user's active GNOME session"
+  gsettings get org.gnome.settings-daemon.plugins.media-keys custom-keybindings >/dev/null 2>&1 \
+    || die "cannot reach the target user's GNOME settings; run --with-desktop from that user's graphical session"
+}
+
+install_tactile() {
+  (( WITH_DESKTOP )) || return
+
+  require_gnome_session
+  command -v git >/dev/null 2>&1 || die "git is required for --with-desktop"
+  command -v tar >/dev/null 2>&1 || die "tar is required for --with-desktop"
+  note "Installing prerequisites for the GNOME desktop workflow."
+  run_as_root apt-get install --yes libglib2.0-bin
+
+  local extension_dir metadata version temporary
+  extension_dir="$DESTINATION/.local/share/gnome-shell/extensions/$TACTILE_UUID"
+  metadata="$extension_dir/metadata.json"
+  if [[ -f "$metadata" ]]; then
+    version=$(sed -nE 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*([0-9]+).*/\1/p' "$metadata" | head -n 1)
+    [[ "$version" == "$TACTILE_VERSION" ]] \
+      || die "Tactile version $version is already installed at $extension_dir; update it deliberately before this bootstrap can manage v$TACTILE_VERSION"
+    note "Tactile v$TACTILE_VERSION is already installed."
+  else
+    temporary=$(mktemp -d)
+    trap 'rm -r "$temporary"' RETURN
+    note "Downloading Tactile v$TACTILE_VERSION from its pinned upstream tag."
+    git clone --depth 1 --branch "v$TACTILE_VERSION" "$TACTILE_REPOSITORY" "$temporary/tactile"
+    [[ "$(git -C "$temporary/tactile" rev-parse --short=8 HEAD)" == "$TACTILE_COMMIT" ]] \
+      || die "Tactile v$TACTILE_VERSION did not resolve to expected commit $TACTILE_COMMIT"
+    install -d "$extension_dir"
+    git -C "$temporary/tactile" archive HEAD | tar -x -C "$extension_dir"
+    rm -r "$temporary"
+    trap - RETURN
+    command -v glib-compile-schemas >/dev/null 2>&1 || die "glib-compile-schemas is unavailable after installing libglib2.0-bin"
+    glib-compile-schemas "$extension_dir/schemas"
+  fi
+
+  gnome-extensions enable "$TACTILE_UUID" \
+    || die "could not enable Tactile for the current GNOME user"
+}
+
+configure_ghostty_shortcut() {
+  (( WITH_DESKTOP )) || return
+
+  local schema base paths path binding selected updated_paths
+  schema="org.gnome.settings-daemon.plugins.media-keys"
+  base="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/"
+  paths=$(gsettings get "$schema" custom-keybindings | grep -o "${base}[^']*/" || true)
+  selected=""
+  while IFS= read -r path; do
+    [[ -n "$path" ]] || continue
+    binding=$(gsettings get "${schema}.custom-keybinding:${path}" binding 2>/dev/null || true)
+    if [[ "$binding" == "'<Super>Return'" ]]; then
+      selected="$path"
+      break
+    fi
+  done <<< "$paths"
+
+  if [[ -z "$selected" ]]; then
+    selected="${base}workstation-terminal/"
+    if [[ -n "$paths" ]]; then
+      updated_paths=$(printf '%s\n%s\n' "$paths" "$selected" | sed "s#^#'#; s#\$#'#" | paste -sd, -)
+      gsettings set "$schema" custom-keybindings "[$updated_paths]"
+    else
+      gsettings set "$schema" custom-keybindings "['$selected']"
+    fi
+  fi
+
+  gsettings set "${schema}.custom-keybinding:${selected}" name 'Ghostty terminal'
+  gsettings set "${schema}.custom-keybinding:${selected}" command 'ghostty'
+  gsettings set "${schema}.custom-keybinding:${selected}" binding '<Super>Return'
+  note "Desktop shortcut: Super+Return opens Ghostty."
+}
+
+install_desktop_workflow() {
+  (( WITH_DESKTOP )) || return
+  install_tactile
+  configure_ghostty_shortcut
 }
 
 install_vscode() {
@@ -309,6 +410,7 @@ create_workspace() {
     "$WORKSPACE_ROOT/Developer" \
     "$WORKSPACE_ROOT/Projects" \
     "$WORKSPACE_ROOT/memory" \
+    "$WORKSPACE_ROOT/rules" \
     "$WORKSPACE_ROOT/.bootstrap"
 
   write_if_absent \
@@ -317,6 +419,12 @@ create_workspace() {
   write_if_absent \
     "$SCRIPT_DIR/seed/project-structure.md" \
     "$WORKSPACE_ROOT/memory/project-structure.md"
+  write_if_absent \
+    "$SCRIPT_DIR/seed/rules/README.md" \
+    "$WORKSPACE_ROOT/rules/README.md"
+  write_if_absent \
+    "$SCRIPT_DIR/seed/rules/foundry.md" \
+    "$WORKSPACE_ROOT/rules/foundry.md"
   write_if_absent \
     "$SCRIPT_DIR/seed/bootstrap-context.md" \
     "$WORKSPACE_ROOT/.bootstrap/context.md"
@@ -342,8 +450,9 @@ tui_menu() {
     note "  1) Personal configuration       [$(tui_status "$CONFIG_ENABLED")]"
     note "  2) Workspace and seed notes     [$(tui_status "$WORKSPACE_ENABLED")]"
     note "  3) Optional CLI packages        [$(tui_status "$WITH_OPTIONAL")]"
-    note "  4) Review selected changes"
-    note "  5) Apply selected changes"
+    note "  4) GNOME desktop workflow       [$(tui_status "$WITH_DESKTOP")]"
+    note "  5) Review selected changes"
+    note "  6) Apply selected changes"
     note "  q) Quit"
     printf 'Choice: '
     read -r choice
@@ -359,11 +468,14 @@ tui_menu() {
         if (( WITH_OPTIONAL )); then WITH_OPTIONAL=0; else WITH_OPTIONAL=1; fi
         ;;
       4)
+        if (( WITH_DESKTOP )); then WITH_DESKTOP=0; else WITH_DESKTOP=1; fi
+        ;;
+      5)
         MODE="preview"
         print_plan
         ensure_chezmoi
         ;;
-      5)
+      6)
         MODE="apply"
         return
         ;;
@@ -371,7 +483,7 @@ tui_menu() {
         note "Cancelled. No changes were made."
         exit 0
         ;;
-      *) note "Choose 1, 2, 3, 4, 5, or q." ;;
+      *) note "Choose 1, 2, 3, 4, 5, 6, or q." ;;
     esac
   done
 }
@@ -394,6 +506,7 @@ main() {
       --destination) (($# >= 2)) || die "--destination needs a value"; DESTINATION=$2; shift ;;
       --workspace) (($# >= 2)) || die "--workspace needs a value"; WORKSPACE_ROOT=$2; shift ;;
       --with-optional) WITH_OPTIONAL=1 ;;
+      --with-desktop) WITH_DESKTOP=1 ;;
       --no-packages) NO_PACKAGES=1 ;;
       --no-config) CONFIG_ENABLED=0 ;;
       --no-workspace) WORKSPACE_ENABLED=0 ;;
@@ -420,9 +533,11 @@ main() {
       note "Preview only. No package or filesystem changes were made."
       ;;
     apply)
+      (( WITH_DESKTOP )) && require_gnome_session
       print_plan
       confirm_apply
       install_packages
+      install_desktop_workflow
       apply_chezmoi
       create_workspace
       note "Bootstrap apply completed. Run the verification checklist before treating this as accepted."
