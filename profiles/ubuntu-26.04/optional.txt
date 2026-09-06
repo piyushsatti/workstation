@@ -1,7 +1,5 @@
-# Optional workstation tools. Verify availability on the chosen 26.04 image
-# before moving any item into required.txt.
+# Optional workstation tools. These are not needed for the default baseline.
 btop
-docker.io
 eza
 fd-find
 fzf

@@ -6,8 +6,11 @@ This is the v0.1 implementation slice described in
 The script is preview-first. It refuses non-Ubuntu and non-26.04 targets before
 package or user-file operations. It uses the profile manifests for packages,
 Chezmoi v2.70.5 for declared user configuration, and creates only empty workspace
-directories plus three small seed notes. It does not import repositories,
-transcripts, credentials, memory corpora, or RAG indexes.
+directories plus three small seed notes. The default package baseline includes
+tmux, Ghostty, Starship, Docker Engine with Compose and Buildx, and the tools
+needed for development. It configures Microsoft's stable apt repository and
+installs VS Code during apply. It does not import repositories, transcripts,
+credentials, memory corpora, or RAG indexes.
 
 ## Visual TUI prototype
 
@@ -88,9 +91,7 @@ Mac, Europa, Voyager 1, or any production machine as the first apply target.
 
 ## Current limits
 
-- The canonical source repository is still intentionally undecided.
-- The package list is a starting manifest and must be reconciled against the
-  accepted Voyager 1 inventory before it becomes a durable baseline.
-- VS Code, Ghostty, fonts, Continue, Tailscale, and harness adapters need their
-  own package and acceptance work before being marked complete.
+- The canonical source repository is `https://github.com/piyushsatti/workstation`.
+- VS Code extensions, fonts, Continue, Tailscale, and harness adapters need
+  their own package and acceptance work before being marked complete.
 - There is no macOS profile in v0.1.

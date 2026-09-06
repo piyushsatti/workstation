@@ -1,13 +1,20 @@
-# Base tools. Keep this list small and boring for v0.1.
+# Default workstation baseline for Ubuntu 26.04.
 bash
 bash-completion
 build-essential
 ca-certificates
 curl
+docker-buildx
+docker-compose-v2
+docker.io
+ghostty
 git
+gnupg
+starship
 sudo
 python3
 python3-venv
+tar
 tmux
 unzip
 wget

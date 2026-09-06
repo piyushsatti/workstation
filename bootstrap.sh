@@ -169,6 +169,9 @@ print_plan() {
   note "Packages:"
   package_list | sed 's/^/  - /'
   note ""
+  note "Additional package source:"
+  note "  - Visual Studio Code from Microsoft's stable apt repository"
+  note ""
   if (( CONFIG_ENABLED )); then
     note "Managed configuration:"
     find "$SOURCE_DIR" -type f -not -path '*/.git/*' -print \
@@ -211,6 +214,73 @@ install_packages() {
   run_as_root apt-get update
   note "Installing declared packages."
   run_as_root apt-get install --yes "${packages[@]}"
+  install_vscode
+  configure_docker_access
+}
+
+install_vscode() {
+  if command -v code >/dev/null 2>&1; then
+    note "Visual Studio Code is already installed."
+    return
+  fi
+
+  command -v curl >/dev/null 2>&1 || die "curl is required to configure Visual Studio Code"
+  command -v gpg >/dev/null 2>&1 || die "gpg is required to configure Visual Studio Code"
+  command -v dpkg >/dev/null 2>&1 || die "dpkg is required to configure Visual Studio Code"
+
+  local architecture key_tmp keyring_tmp source_tmp
+  architecture=$(dpkg --print-architecture)
+  case "$architecture" in
+    amd64|arm64|armhf) ;;
+    *) die "unsupported Ubuntu architecture for Visual Studio Code: $architecture" ;;
+  esac
+
+  key_tmp=$(mktemp)
+  keyring_tmp=$(mktemp)
+  source_tmp=$(mktemp)
+
+  curl --fail --silent --show-error --location \
+    --output "$key_tmp" \
+    https://packages.microsoft.com/keys/microsoft.asc
+  gpg --dearmor --output "$keyring_tmp" "$key_tmp"
+  printf '%s\n' \
+    'Types: deb' \
+    'URIs: https://packages.microsoft.com/repos/code' \
+    'Suites: stable' \
+    'Components: main' \
+    "Architectures: $architecture" \
+    'Signed-By: /etc/apt/keyrings/packages.microsoft.gpg' \
+    > "$source_tmp"
+
+  run_as_root install -d -m 0755 /etc/apt/keyrings
+  run_as_root install -m 0644 "$keyring_tmp" /etc/apt/keyrings/packages.microsoft.gpg
+  run_as_root install -m 0644 "$source_tmp" /etc/apt/sources.list.d/vscode.sources
+  rm -f "$key_tmp" "$keyring_tmp" "$source_tmp"
+
+  note "Updating apt metadata for Visual Studio Code."
+  run_as_root apt-get update
+  note "Installing Visual Studio Code."
+  run_as_root apt-get install --yes code
+}
+
+configure_docker_access() {
+  command -v getent >/dev/null 2>&1 || return
+  getent group docker >/dev/null 2>&1 || return
+
+  local target_user
+  target_user=${SUDO_USER:-$(id -un)}
+  if [[ "$target_user" == root ]]; then
+    note "Docker access: root is the active user."
+    return
+  fi
+
+  if id -nG "$target_user" | tr ' ' '\n' | grep -qx docker; then
+    note "Docker access: $target_user is already in the docker group."
+    return
+  fi
+
+  run_as_root usermod --append --groups docker "$target_user"
+  note "Docker access: added $target_user to the docker group. Start a new login session before using Docker without sudo."
 }
 
 apply_chezmoi() {

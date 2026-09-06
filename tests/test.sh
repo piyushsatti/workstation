@@ -11,6 +11,15 @@ grep -q -- '--apply' <<<"$help_output"
 grep -q -- '--destination PATH' <<<"$help_output"
 grep -q -- '--tui' <<<"$help_output"
 
+required_manifest="$ROOT/profiles/ubuntu-26.04/required.txt"
+for package in tmux ghostty starship docker.io docker-compose-v2 docker-buildx; do
+  grep -qx "$package" "$required_manifest"
+done
+if grep -qx 'docker.io' "$ROOT/profiles/ubuntu-26.04/optional.txt"; then
+  printf 'docker.io must remain in the default workstation baseline\n' >&2
+  exit 1
+fi
+
 if bash "$ROOT/bootstrap.sh" --check --no-packages >/tmp/ubuntu-bootstrap-test-output 2>/tmp/ubuntu-bootstrap-test-error; then
   printf 'unexpectedly accepted the current host as Ubuntu 26.04\n' >&2
   exit 1

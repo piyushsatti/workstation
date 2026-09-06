@@ -21,7 +21,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 CAPABILITIES = {
     "personal": (
         "Personal configuration",
-        "Shell, tmux, Ghostty, Starship, and editor preferences",
+        "Shell, tmux, Ghostty, Starship, VS Code, and editor preferences",
         True,
     ),
     "workspace-foundation": (
@@ -31,7 +31,7 @@ CAPABILITIES = {
     ),
     "core-tools": (
         "Core command-line tools",
-        "Git, curl, build essentials, and bootstrap requirements",
+        "Git, Docker, Ghostty, VS Code, and bootstrap requirements",
         True,
     ),
     "optional": (

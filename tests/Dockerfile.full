@@ -6,9 +6,17 @@ COPY . /opt/bootstrap
 RUN apt-get update \
   && apt-get install --yes ca-certificates curl tar gzip
 
-RUN bash bootstrap.sh --apply --noninteractive --no-packages \
+RUN bash bootstrap.sh --apply --noninteractive \
   --destination /tmp/bootstrap-home \
   --workspace /tmp/bootstrap-home/Studio
+
+RUN command -v tmux \
+  && command -v ghostty \
+  && command -v starship \
+  && command -v code \
+  && command -v docker \
+  && docker compose version \
+  && docker buildx version
 
 RUN test -f /tmp/bootstrap-home/.bashrc \
   && test -f /tmp/bootstrap-home/.config/Code/User/settings.json \
