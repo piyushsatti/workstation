@@ -1,9 +1,0 @@
-# Optional workstation tools. These are not needed for the default baseline.
-btop
-eza
-fd-find
-fzf
-jq
-neovim
-ripgrep
-zoxide

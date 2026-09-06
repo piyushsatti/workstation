@@ -1,0 +1,9 @@
+{
+  "name": "workstation-tools",
+  "private": true,
+  "dependencies": {
+    "@anthropic-ai/claude-code": "2.1.261",
+    "@openai/codex": "0.153.4",
+    "opencode-ai": "1.18.27"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "chezmoi": "2.70.5",
+  "uv": "0.11.3",
+  "claude": "2.1.261",
+  "codex": "0.153.4",
+  "opencode": "1.18.27",
+  "tactile": "6f3c1f8868f2bcb36c520c81a37ca929406b08cd",
+  "nordic": "bb5e31ec1488b1fd5641aa10f65f36d8714b5dba",
+  "nordzy": "829c47bda534d3c9f3c7d46c73a6fe9d946eca41",
+  "fontVersion": "3.4.0",
+  "fontSha256": "ef552a3e638f25125c6ad4c51176a6adcdce295ab1d2ffacf0db060caf8c1582"
+}

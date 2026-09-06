@@ -1,118 +1,80 @@
-# Ubuntu workstation bootstrap prototype
+# Workstation
 
-This is the v0.1 implementation slice described in
-`../ubuntu-workstation-bootstrap-plan.md`. It targets Ubuntu 26.04 LTS only.
-
-The script is preview-first. It refuses non-Ubuntu and non-26.04 targets before
-package or user-file operations. It uses the profile manifests for packages,
-Chezmoi v2.70.5 for declared user configuration, and creates only empty workspace
-directories plus three small seed notes. The default package baseline includes
-tmux, Ghostty, Starship, Docker Engine with Compose and Buildx, and the tools
-needed for development. It configures Microsoft's stable apt repository and
-installs VS Code during apply. It does not import repositories, transcripts,
-credentials, memory corpora, or RAG indexes.
-
-The workspace foundation creates `~/Studio/rules/` with small, editable
-pointers to reusable operating rules. It includes a Foundry pointer, but does
-not clone Foundry or install any marketplace content.
-
-The GNOME desktop workflow is opt-in. `--with-desktop` builds Tactile v37 from
-its pinned upstream tag and locked npm dependencies, enables it for the current
-GNOME user, and binds `Super+Return` to Ghostty. Run that option from the
-target user's active GNOME session, not from SSH or a headless terminal.
-Tactile provides the Voyager workflow: `Super+T` opens its grid, then tile keys
-select where the active window goes.
-
-For a complete first-machine setup, use `--apply --all`. It selects the core
-baseline, optional CLI tools, managed configuration, workspace scaffold, and
-GNOME desktop workflow. It still asks for the normal sudo confirmation.
-
-## Visual TUI prototype
-
-The Textual interface calls the existing bootstrap backend. It defaults to
-preview mode, so the review action reports the backend plan without changing
-files. Pass `--apply` only when you intentionally want the acceptance action to
-apply the selected profile.
-
-Run the preview-backed UI with `uv` in an isolated environment:
+Run this on Ubuntu 26.04 LTS from your normal user account:
 
 ```sh
-UV_CACHE_DIR=/tmp/codex-textual-cache \
-  uv run --with textual python tui_demo.py
+sudo ./bootstrap.sh
 ```
 
-For a disposable apply test, use a temporary destination and skip package
-operations:
+That installs the complete profile. There is no TUI, Apply All, desktop flag, or
+selection prompt. Sudo authenticates once; system packages run as root, and
+configuration, extensions and third-party builds run as the user who invoked sudo.
+
+The profile includes Ghostty, the Nerd Font, Voyager's tmux/plugin setup, shell
+aliases and prompt, a bottom GNOME dock with Nordic/Nordzy appearance, Tactile,
+the Mac's VS Code extensions/preferences adapted to Linux, Docker, development
+runtimes, Claude/Codex/OpenCode, and the Studio scaffold.
+
+[Inventory and deliberate differences](docs/inventory.md) records the actual
+reference machines and anything that cannot be reproduced by installing files.
+[Versions and licenses](docs/software.md) describes the pinned sources.
+[Validation results and remaining acceptance checks](docs/validation.md) distinguish
+the completed container runs from the pending live desktop check.
+Configuration replacements are saved in ~/.local/state/workstation/TIMESTAMP/.
+Editable scaffold notes and existing authenticated application configurations are preserved.
+
+After installation, open a new terminal. A new login is needed for Docker group
+membership and newly installed GNOME extensions. The installer never logs you out.
+Continue requires your model endpoint; account sign-in and private data remain yours.
+
+Verify again as your normal user:
 
 ```sh
-UV_CACHE_DIR=/tmp/codex-textual-cache \
-  uv run --with textual python tui_demo.py \
-    --apply --no-packages \
-    --destination /tmp/tui-home \
-    --workspace /tmp/tui-home/Studio
+./verify.sh
 ```
 
-The backend output and exit status are shown on the review screen. The TUI
-stops waiting for a backend run after 300 seconds. Do not run `--apply` on a
-real workstation until the preview has been reviewed.
+Every required check must pass. The detailed result is
+~/.local/state/workstation/report.json, including any pending session activation.
+Persisted desktop settings do not prove physical display output.
 
-## Run the fast local checks
+## Installation sources are explicit
 
-On a development Mac, this validates syntax and confirms that the installer
-refuses the host without changing it:
+| Path | Responsibility |
+|---|---|
+| bootstrap.sh | OS/sudo gate, pinned apt installation, user handoff, verification |
+| scripts/workstation.py | User-owned tools, pinned plugins, rendered dotfiles, themes, extensions, scaffold, checks |
+| profiles/ubuntu-26.04/ | Apt versions, npm lockfile, plugin commits, extension IDs/versions and download pins |
+| chezmoi/ | Portable source files; rendered using Chezmoi archive |
+| seed/ | Create-once notes and integration pointers |
+| tests/ | Recovery tests and complete Ubuntu integration build |
+
+Chezmoi renders this source into an archive. The installer backs up and replaces
+only the declared files, avoiding an existing Chezmoi configuration's removal
+prompts. VS Code settings and keybindings merge with unrelated existing values.
+
+The old TUI, selection manifests and partial Docker recipes have been retired;
+their previous versions remain in Git history.
+
+## Verification before shipping
 
 ```sh
 ./tests/test.sh
+docker build --platform linux/amd64 --target recovery -f tests/Dockerfile.complete -t workstation:recovery-20260905 .
+docker build --platform linux/amd64 --target installed -f tests/Dockerfile.complete -t workstation:verified-20260905 .
 ```
 
-The simple capability-selection menu is available on an Ubuntu 26.04 terminal:
+The recovery image is retained before the install. The complete build executes
+the real command twice, then the standalone verifier. It tests Linux userland,
+not a physical GPU, running GNOME session or Docker daemon inside the container.
+Use Europa for the final session-level checks. macOS support remains deferred.
 
-```sh
-./bootstrap.sh --tui
-```
+## Recovery
 
-It keeps the base workstation enabled, lets you toggle personal configuration,
-workspace seed notes, optional CLI packages, and the opt-in GNOME desktop
-workflow, then gives you a review screen before apply. Press `q` to leave
-without changing anything.
+Each run saves changed files under its recovery directory using paths relative
+to your home. The original symlink is preserved if a managed file was a symlink.
+To recover a particular file, inspect its backup and copy that specific entry
+back. GNOME's original managed values are stored in gnome-settings.json.
+Do not recursively restore the entire home directory.
 
-The test intentionally does not claim that macOS is supported. Docker is the
-Linux userland check, not a macOS system check:
-
-```sh
-docker build -f tests/Dockerfile -t ubuntu-workstation-bootstrap:0.1 .
-```
-
-The Docker check only proves the target gate and source/manifest integrity. The
-v0.1 release gate is a disposable Ubuntu 26.04 VM with a recorded recovery
-point. Run the installer there first:
-
-```sh
-./bootstrap.sh --preview
-./bootstrap.sh --apply
-./bootstrap.sh --apply --with-desktop
-./bootstrap.sh --apply --all
-```
-
-For a test home on the VM, use a disposable destination and workspace path:
-
-```sh
-./bootstrap.sh \
-  --apply \
-  --noninteractive \
-  --destination /tmp/bootstrap-home \
-  --workspace /tmp/bootstrap-home/Studio
-```
-
-That test mode still requires the VM to be Ubuntu 26.04. Do not use the primary
-Mac, Europa, Voyager 1, or any production machine as the first apply target.
-
-## Current limits
-
-- The canonical source repository is `https://github.com/piyushsatti/workstation`.
-- VS Code extensions, fonts, Continue, Tailscale, and harness adapters need
-  their own package and acceptance work before being marked complete.
-- The desktop workflow needs a real GNOME-session acceptance check. Verify
-  `gnome-extensions info tactile@lundal.io`, press `Super+T`, and confirm
-  `Super+Return` opens Ghostty.
-- There is no macOS profile in v0.1.
+Apt package changes are recorded in /var/log/apt/history.log. These file-level
+recovery copies do not undo packages; use the machine backup for a full rollback.

@@ -1,21 +1,36 @@
-# Managed by the Ubuntu workstation bootstrap.
-# Machine-local additions belong in ~/.bashrc.local.
-
-case $- in
-  *i*) ;;
-  *) return ;;
-esac
-
-shopt -s histappend
-shopt -s cdspell
+# Managed workstation Bash configuration. Put extra local settings in ~/.bashrc.local.
+[[ $- != *i* ]] && return
+shopt -s histappend cdspell dirspell
 HISTSIZE=10000
 HISTFILESIZE=20000
 HISTCONTROL=ignoreboth
-
-export EDITOR="code --wait"
-export VISUAL="code --wait"
+export EDITOR="code --wait" VISUAL="code --wait"
 export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
-
-if [[ -f "$HOME/.bashrc.local" ]]; then
-  source "$HOME/.bashrc.local"
-fi
+export BAT_THEME=Nord
+export FZF_DEFAULT_COMMAND='fdfind --type f --hidden --exclude .git'
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border --info=inline --color=fg:#D8DEE9,bg:#232731,hl:#81A1C1,fg+:#ECEFF4,bg+:#3B4252,hl+:#88C0D0,info:#EBCB8B,prompt:#BF616A,pointer:#B48EAD,marker:#A3BE8C,spinner:#B48EAD,header:#88C0D0,border:#4C566A"
+export FZF_CTRL_T_OPTS="--preview 'batcat --style=numbers --color=always --line-range :500 {}'"
+export FZF_ALT_C_OPTS="--preview 'eza --tree --level=2 --icons --color=always {}'"
+[[ -r /usr/share/bash-completion/bash_completion ]] && source /usr/share/bash-completion/bash_completion
+[[ -r /usr/share/doc/fzf/examples/key-bindings.bash ]] && source /usr/share/doc/fzf/examples/key-bindings.bash
+[[ -r /usr/share/bash-completion/completions/fzf ]] && source /usr/share/bash-completion/completions/fzf
+alias bat=batcat
+alias fd=fdfind
+alias ls='eza --icons --group-directories-first'
+alias ll='eza -la --icons --group-directories-first --git'
+alias lt='eza --tree --level=2 --icons'
+alias search=rg
+alias lg=lazygit
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias tm='tmux new -A -s main'
+alias claude-personal='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude'
+t() { tmux attach-session -t "$1"; }
+tn() { tmux new-session -s "${1:-main}"; }
+eval "$(zoxide init bash)"
+eval "$(starship init bash)"
+[[ -f "$HOME/.bash_aliases.local" ]] && source "$HOME/.bash_aliases.local"
+[[ -f "$HOME/.bashrc.local" ]] && source "$HOME/.bashrc.local"
+true

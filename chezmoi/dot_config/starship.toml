@@ -1,7 +1,62 @@
-# Managed by the Ubuntu workstation bootstrap.
-add_newline = false
-format = "$directory$git_branch$git_status$python$character"
+# Starship config : clean and informative
+format = """
+$username\
+$hostname\
+$directory\
+$git_branch\
+$git_status\
+$python\
+$nodejs\
+$docker_context\
+$sudo\
+$cmd_duration\
+$line_break\
+$character"""
+
+[username]
+show_always = true
+format = "[$user]($style)@"
+style_user = "bold cyan"
+style_root = "bold red"
+
+[hostname]
+ssh_only = false
+format = "[$hostname]($style) "
+style = "bold yellow"
+trim_at = "."
+
+[directory]
+truncation_length = 3
+truncate_to_repo = true
+
+[git_branch]
+symbol = " "
+
+[git_status]
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+
+[python]
+symbol = " "
+detect_extensions = []
+
+[nodejs]
+symbol = " "
+
+[docker_context]
+symbol = " "
+
+[cmd_duration]
+min_time = 2_000
+format = "took [$duration]($style) "
+
+[sudo]
+disabled = false
+symbol = "🔒"
+format = "[$symbol]($style)"
+style = "bold yellow"
 
 [character]
-success_symbol = "[➜](bold #a3be8c)"
-error_symbol = "[➜](bold #bf616a)"
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
